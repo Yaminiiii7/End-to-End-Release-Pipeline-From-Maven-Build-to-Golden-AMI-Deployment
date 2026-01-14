@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="geo-service" default="package" basedir=".">
+
+    <!-- Properties -->
+    <property name="dist.dir" value="dist"/>
+    <property name="bundle.dir" value="${dist.dir}/installer-bundle"/>
+    <property name="bin.dir" value="${bundle.dir}/bin"/>
+    <property name="conf.dir" value="${bundle.dir}/conf"/>
+    <property name="scripts.dir" value="${bundle.dir}/scripts"/>
+
+    <property name="target.dir" value="target"/>
+    <property name="jar.name" value="geo-service-1.0.0.jar"/>
+    <property name="jar.path" value="${target.dir}/${jar.name}"/>
+
+    <!-- Clean old dist -->
+    <target name="clean">
+        <echo>Cleaning previous dist output...</echo>
+        <delete dir="${dist.dir}" quiet="true"/>
+    </target>
+
+    <!-- Create installer bundle directory layout -->
+    <target name="prepare" depends="clean">
+        <echo>Creating installer-bundle folder structure...</echo>
+        <mkdir dir="${bin.dir}"/>
+        <mkdir dir="${conf.dir}"/>
+        <mkdir dir="${scripts.dir}"/>
+    </target>
+
+    <!-- Copy built JAR into dist bundle -->
+    <target name="copy-jar" depends="prepare">
+        <echo>Copying ${jar.path} to ${bin.dir}...</echo>
+
+        <!-- Fail fast if the jar doesn't exist -->
+        <available file="${jar.path}" property="jar.exists"/>
+        <fail unless="jar.exists">
+            JAR not found at ${jar.path}. Run: mvn clean package
+        </fail>
+
+        <copy file="${jar.path}" todir="${bin.dir}"/>
+    </target>
+
+    <!-- Add sample config + scripts (installer-style integration points) -->
+    <target name="add-assets" depends="copy-jar">
+        <echo>Adding config and install scripts...</echo>
+        <!-- Upgrade script -->
+        <echo file="${scripts.dir}/upgrade.sh">
+        #!/usr/bin/env bash
+        set -e
+
+        APP_DIR="/opt/geo-service"
+        JAR_NAME="${jar.name}"
+        BACKUP_DIR="/opt/geo-service-backup"
+
+        echo "Starting geo-service upgrade..."
+
+        if [ ! -f "$APP_DIR/$JAR_NAME" ]; then
+        echo "No existing installation found."
+        exit 1
+        fi
+
+        sudo mkdir -p "$BACKUP_DIR"
+        sudo cp "$APP_DIR/$JAR_NAME" "$BACKUP_DIR/$JAR_NAME.$(date +%s)"
+
+        sudo systemctl stop geo-service || true
+        sudo cp ../bin/$JAR_NAME "$APP_DIR/$JAR_NAME"
+        sudo systemctl start geo-service
+
+        echo "Upgrade completed."
+        </echo>
+
+<chmod file="${scripts.dir}/upgrade.sh" perm="755"/>
+
+
+        <!-- Config template -->
+        <echo file="${conf.dir}/application.properties">
+server.port=8080
+# add more config here
+        </echo>
+
+        <!-- Install script (Linux) -->
+        <echo file="${scripts.dir}/install.sh">
+#!/usr/bin/env bash
+set -e
+echo "Installing geo-service..."
+sudo mkdir -p /opt/geo-service
+sudo cp ../bin/${jar.name} /opt/geo-service/geo-service.jar
+echo "Done. (systemd setup can be added here)"
+        </echo>
+        <chmod file="${scripts.dir}/install.sh" perm="755"/>
+
+        <!-- Uninstall script (Linux) -->
+        <echo file="${scripts.dir}/uninstall.sh">
+#!/usr/bin/env bash
+set -e
+echo "Uninstalling geo-service..."
+sudo rm -rf /opt/geo-service
+echo "Done."
+        </echo>
+        <chmod file="${scripts.dir}/uninstall.sh" perm="755"/>
+    </target>
+
+    <!-- Zip the installer bundle -->
+    <target name="zip" depends="add-assets">
+        <echo>Creating zip package...</echo>
+        <zip destfile="${dist.dir}/geo-service-installer-bundle.zip" basedir="${bundle.dir}"/>
+    </target>
+
+    <!-- Default -->
+    <target name="package" depends="zip">
+        <echo>✅ Release bundle created at: ${dist.dir}/geo-service-installer-bundle.zip</echo>
+    </target>
+
+</project>

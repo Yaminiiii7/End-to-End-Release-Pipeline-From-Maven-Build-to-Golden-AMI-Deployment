@@ -1,0 +1,3 @@
+com\geo\service\controller\GeoController.class
+com\geo\service\GeoServiceApplication.class
+com\geo\service\model\Location.class
