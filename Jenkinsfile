@@ -8,42 +8,29 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout') {
-            steps {
-                checkout scm
-            }
+            steps { checkout scm }
         }
 
         stage('Build (Maven)') {
             steps {
-                sh 'mvn -v'
                 sh 'mvn clean package'
             }
         }
 
-        stage('Test') {
+        stage('Package (Ant)') {
             steps {
-                // if you have tests, this will run them as part of mvn test
-                sh 'mvn test'
-            }
-        }
-
-        stage('Package (Ant Installer Bundle)') {
-            steps {
-                sh 'ant -version'
                 sh 'ant package'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Docker Build') {
             steps {
-                sh 'docker --version'
                 sh "docker build -t ${DOCKER_IMAGE} -f docker/Dockerfile ."
             }
         }
 
-        stage('Smoke Test Docker') {
+        stage('Smoke Test') {
             steps {
                 sh """
                   docker rm -f ${APP_NAME} || true
@@ -54,15 +41,6 @@ pipeline {
                 """
             }
         }
-
-        // OPTIONAL: Enable after you finish Step 6 (Packer)
-        // stage('Build Golden AMI (Packer)') {
-        //     steps {
-        //         sh 'packer --version'
-        //         sh 'packer init packer/'
-        //         sh 'packer build packer/geo-service.pkr.hcl'
-        //     }
-        // }
     }
 
     post {
