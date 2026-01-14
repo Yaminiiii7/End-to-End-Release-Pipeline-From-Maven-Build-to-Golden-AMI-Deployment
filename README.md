@@ -77,6 +77,8 @@ geo-service/
 
 **High-level workflow:**
 
+<img src='image.png'>
+
 1. Source code managed in Git  
 2. Jenkins pipeline triggers on commit  
 3. Maven builds and tests Spring Boot application  
