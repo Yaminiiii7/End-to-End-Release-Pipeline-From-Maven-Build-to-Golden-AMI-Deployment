@@ -1,0 +1,15 @@
+[Unit]
+Description=Geo Service (Spring Boot)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/geo-service
+ExecStart=/usr/bin/java -jar /opt/geo-service/geo-service.jar
+Restart=always
+RestartSec=5
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
